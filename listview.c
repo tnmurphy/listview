@@ -45,38 +45,38 @@ const char LV2_DELIM[] = ", \n";
 void unshowbar(WINDOW *w, int line);
 void showbar(WINDOW *w, int line);
 
-typedef struct dispElementStruct {
+typedef struct DisplayElementStruct {
   char display[MAXELEM];
   char variable[MAXELEM];
   int marked;
-  struct dispElementStruct *next;
-} dispElement;
+  struct DisplayElementStruct *next;
+} DisplayElement;
 
-int appendToList(dispElement **list, dispElement *item);
+int appendToList(DisplayElement **list, DisplayElement *item);
 
-int inline appendToList(dispElement **list, dispElement *item) {
-  dispElement *find;
-  item->next = (dispElement *)0;
-  if (*list == (dispElement *)0) {
+int inline appendToList(DisplayElement **list, DisplayElement *item) {
+  DisplayElement *find;
+  item->next = (DisplayElement *)0;
+  if (*list == (DisplayElement *)0) {
     *list = item;
   } else {
     find = *list;
-    while (find->next != (dispElement *)0)
+    while (find->next != (DisplayElement *)0)
       find = find->next;
     find->next = item;
   }
 }
 
-dispElement *scanTo(dispElement *list, int pos) {
-  dispElement *find;
+DisplayElement *scan_to(DisplayElement *list, int pos) {
+  DisplayElement *find;
   int fpos;
 
-  if (list == (dispElement *)0)
+  if (list == (DisplayElement *)0)
     return list;
 
   fpos = 0;
   find = list;
-  while (find->next != (dispElement *)0 && fpos < pos) {
+  while (find->next != (DisplayElement *)0 && fpos < pos) {
     find = find->next;
     fpos++;
   }
@@ -84,33 +84,61 @@ dispElement *scanTo(dispElement *list, int pos) {
   return find;
 }
 
-int main(int _argc, char *_argv[]) {
-  dispElement *dirList = (dispElement *)0;
+int parse_input_into_list(DisplayElement **menu_list) {
+  DisplayElement *newItem;
   char inStr[MAXELEM];
   char *tok1Ptr;
   char *tok2Ptr;
+  int num_rows = 0;
+  while (!feof(stdin)) {
+    fgets(inStr, MAXELEM, stdin);
+    tok1Ptr = strtok(inStr, LV1_DELIM);
+    tok2Ptr = strtok(NULL, LV2_DELIM);
+    if (tok1Ptr && tok2Ptr) {
+      /* remove leading  spaces on variable */
+      while (*tok2Ptr == ' ')
+        tok2Ptr++;
+
+      newItem = (DisplayElement *)malloc(sizeof(DisplayElement));
+      if (newItem) {
+        strncpy(newItem->display, tok1Ptr, MAXELEM);
+        strncpy(newItem->variable, tok2Ptr, MAXELEM);
+        newItem->marked = FALSE;
+        appendToList(menu_list, newItem);
+        num_rows++;
+      } else {
+        fprintf(stderr, "Couldn't allocate memory.\n");
+        exit(-1);
+      }
+    }
+  }
+  return num_rows;
+}
+
+
+int main(int _argc, char *_argv[]) {
+  DisplayElement *menu_list = (DisplayElement *)0;
   FILE *console = (FILE *)0;
-  FILE *ttyInput = (FILE *)0;
-  int rowPos = 0;
+  FILE *tty_input = (FILE *)0;
+  int row_pos = 0;
   int cursor = 0;
-  int keyPress;
-  int maxX, maxY, begX, begY;
-  int nRows, nCols;
-  int padRefreshRows, padRefreshCols;
-  int padStartY;
-  int oldCursor, oldRowPos;
-  dispElement *newItem;
-  dispElement *currentItem;
-  dispElement *showItem;
-  int markCount = 0;
-  WINDOW *mainWin;
-  SCREEN *mainScr;
+  int key_press;
+  int max_x, max_y, beg_x, beg_y;
+  int num_rows, num_cols;
+  int pad_refresh_rows, pad_refresh_cols;
+  int pad_start_y;
+  int old_cursor, old_row_pos;
+  DisplayElement *current_item;
+  DisplayElement *show_item;
+  int mark_count = 0;
+  WINDOW *main_win;
+  SCREEN *main_screen;
 
   int childStatus, childID;
-  char **executeArgs;
-  int addItem, countExtraArgs;
-  int execArgsPos, argvPos;
-  int argsInserted = 0;
+  char **execute_args;
+  int addItem, count_extra_args;
+  int exec_args_pos, argv_pos;
+  int args_inserted = 0;
 
   WINDOW *mainPad;
 
@@ -122,42 +150,20 @@ int main(int _argc, char *_argv[]) {
     exit(-1);
   }
 
-  ttyInput = fopen("/dev/tty", "rw");
+  tty_input = fopen("/dev/tty", "rw");
   console = fopen("/dev/tty", "w");
 
-  nRows = 0;
-  while (!feof(stdin)) {
-    fgets(inStr, MAXELEM, stdin);
-    tok1Ptr = strtok(inStr, LV1_DELIM);
-    tok2Ptr = strtok(NULL, LV2_DELIM);
-    if (tok1Ptr && tok2Ptr) {
-      /* remove leading  spaces on variable */
-      while (*tok2Ptr == ' ')
-        tok2Ptr++;
+  num_rows = parse_input_into_list(&menu_list);
 
-      newItem = (dispElement *)malloc(sizeof(dispElement));
-      if (newItem) {
-        strncpy(newItem->display, tok1Ptr, MAXELEM);
-        strncpy(newItem->variable, tok2Ptr, MAXELEM);
-        newItem->marked = FALSE;
-        appendToList(&dirList, newItem);
-        nRows++;
-      } else {
-        fprintf(stderr, "Couldn't allocate memory.\n");
-        exit(-1);
-      }
-    }
-  }
-
-  if (!dirList) {
+  if (!menu_list) {
     fprintf(stderr, "No display,variable pairs found in the input\n");
     exit(1);
   }
 
   /* Now try to switch to ncurses etc */
-  mainScr = newterm(NULL, console, ttyInput);
-  set_term(mainScr);
-  mainWin = newwin(0, 0, 0, 0);
+  main_screen = newterm(NULL, console, tty_input);
+  set_term(main_screen);
+  main_win = newwin(0, 0, 0, 0);
   fprintf(stderr, "lines %d cols %d\n", LINES, COLS);
   endwin();
 
@@ -167,62 +173,62 @@ int main(int _argc, char *_argv[]) {
   nonl();
 
   beep();
-  getmaxyx(mainWin, maxY, maxX);
-  getbegyx(mainWin, begY, begX);
-  nCols = maxX - begX + 1;
-  padRefreshRows = (nRows > maxY - 2) ? maxY - 2 : nRows;
-  padRefreshCols = (nCols > maxX) ? maxX - 1 : nCols - 1;
-  mainPad = newpad(nRows, nCols);
+  getmaxyx(main_win, max_y, max_x);
+  getbegyx(main_win, beg_y, beg_x);
+  num_cols = max_x - beg_x + 1;
+  pad_refresh_rows = (num_rows > max_y - 2) ? max_y - 2 : num_rows;
+  pad_refresh_cols = (num_cols > max_x) ? max_x - 1 : num_cols - 1;
+  mainPad = newpad(num_rows, num_cols);
   intrflush(mainPad, FALSE);
   keypad(mainPad, TRUE);
   nodelay(mainPad, FALSE);
 
-  showItem = dirList;
-  while (showItem != (dispElement *)0) {
-    wprintw(mainPad, "%s\n", showItem->display);
-    showItem = showItem->next;
+  show_item = menu_list;
+  while (show_item != (DisplayElement *)0) {
+    wprintw(mainPad, "%s\n", show_item->display);
+    show_item = show_item->next;
   }
 
   /* Initialiase the pad input settings & draw it for the first time */
   cursor = 0;
-  currentItem = dirList;
+  current_item = menu_list;
   keypad(mainPad, TRUE);
-  showbar(mainPad, cursor + rowPos);
-  padStartY = begY + 1;
-  prefresh(mainPad, rowPos, 0, padStartY, 0, padRefreshRows, padRefreshCols);
+  showbar(mainPad, cursor + row_pos);
+  pad_start_y = beg_y + 1;
+  prefresh(mainPad, row_pos, 0, pad_start_y, 0, pad_refresh_rows, pad_refresh_cols);
 
   /* print the first status line below */
-  wattr_on(mainWin, WA_REVERSE, NULL);
-  mvwprintw(mainWin, maxY - 1, begX, "%s , %d  ", currentItem->variable,
-            maxY - 1);
+  wattr_on(main_win, WA_REVERSE, NULL);
+  mvwprintw(main_win, max_y - 1, beg_x, "%s , %d  ", current_item->variable,
+            max_y - 1);
 
-  mvwprintw(mainWin, begY, begX, "LISTVIEW - %s ", _argv[LV_TITLE_PARAM]);
-  wrefresh(mainWin);
+  mvwprintw(main_win, beg_y, beg_x, "LISTVIEW - %s ", _argv[LV_TITLE_PARAM]);
+  wrefresh(main_win);
 
-  keyPress = '\0';
-  while (keyPress != '\r') {
-    //	fprintf(stderr, "curpos %d, rowpos: %d, maxy: %d.\n", cursor, rowPos,
-    //maxY);
-    oldCursor = cursor;
-    oldRowPos = rowPos;
-    switch (keyPress) {
+  key_press = '\0';
+  while (key_press != '\r') {
+    //	fprintf(stderr, "curpos %d, rowpos: %d, maxy: %d.\n", cursor, row_pos,
+    //max_y);
+    old_cursor = cursor;
+    old_row_pos = row_pos;
+    switch (key_press) {
     case KEY_LV_MARK: /*  User wishes to select an item */
-      if (currentItem->marked == FALSE) {
-        currentItem->marked = TRUE;
-        mvwaddch(mainPad, rowPos + cursor, maxX - 1, '*');
-        markCount++;
+      if (current_item->marked == FALSE) {
+        current_item->marked = TRUE;
+        mvwaddch(mainPad, row_pos + cursor, max_x - 1, '*');
+        mark_count++;
       } else {
-        currentItem->marked = FALSE;
-        mvwaddch(mainPad, rowPos + cursor, maxX - 1, ' ');
-        markCount--;
+        current_item->marked = FALSE;
+        mvwaddch(mainPad, row_pos + cursor, max_x - 1, ' ');
+        mark_count--;
       }
       break;
 
     case KEY_PPAGE: /* Page up (moves 1/2 a screen) */
-      if (rowPos + cursor > maxY / 2) {
-        cursor -= maxY / 2;
+      if (row_pos + cursor > max_y / 2) {
+        cursor -= max_y / 2;
         if (cursor < 0) {
-          rowPos += cursor;
+          row_pos += cursor;
           cursor = 0;
         }
       } else
@@ -230,11 +236,11 @@ int main(int _argc, char *_argv[]) {
       break;
 
     case KEY_NPAGE: /* Page Down (moves 1/2 a screen) */
-      if (rowPos + cursor + maxY / 2 < nRows - 1) {
-        cursor += maxY / 2;
-        if (cursor >= maxY - 1) {
-          rowPos += cursor - (maxY - 1);
-          cursor = maxY - 1;
+      if (row_pos + cursor + max_y / 2 < num_rows - 1) {
+        cursor += max_y / 2;
+        if (cursor >= max_y - 1) {
+          row_pos += cursor - (max_y - 1);
+          cursor = max_y - 1;
         }
       } else
         beep();
@@ -243,18 +249,18 @@ int main(int _argc, char *_argv[]) {
     case KEY_UP: /* Move up one item. */
       if (cursor > 0)
         cursor--;
-      else if (rowPos > 0)
-        rowPos--;
+      else if (row_pos > 0)
+        row_pos--;
       else
         beep();
       break;
 
     case KEY_DOWN: /* Move down one item */
-      if (rowPos + cursor < nRows - 1) {
-        if (cursor < maxY - 1)
+      if (row_pos + cursor < num_rows - 1) {
+        if (cursor < max_y - 1)
           cursor++;
         else
-          rowPos++;
+          row_pos++;
       } else
         beep();
       break;
@@ -262,82 +268,82 @@ int main(int _argc, char *_argv[]) {
     } /* End switch */
 
     /* Display the cursor bar */
-    unshowbar(mainPad, oldCursor + oldRowPos);
-    showbar(mainPad, cursor + rowPos);
+    unshowbar(mainPad, old_cursor + old_row_pos);
+    showbar(mainPad, cursor + row_pos);
 
     /* Display the variable associated with the current item. */
-    currentItem = scanTo(dirList, rowPos + cursor);
-    wmove(mainWin, maxY - 1, begX);
-    wclrtoeol(mainWin);
-    mvwprintw(mainWin, maxY - 1, begX, "%s , yb %d , ym %d , c %d ",
-              currentItem->variable, begY, maxY, cursor);
-    wrefresh(mainWin);
+    current_item = scan_to(menu_list, row_pos + cursor);
+    wmove(main_win, max_y - 1, beg_x);
+    wclrtoeol(main_win);
+    mvwprintw(main_win, max_y - 1, beg_x, "%s , yb %d , ym %d , c %d ",
+              current_item->variable, beg_y, max_y, cursor);
+    wrefresh(main_win);
 
     /*  Update the Pad */
-    prefresh(mainPad, rowPos, 0, padStartY, 0, padRefreshRows, padRefreshCols);
+    prefresh(mainPad, row_pos, 0, pad_start_y, 0, pad_refresh_rows, pad_refresh_cols);
 
     /* Get next keystroke */
-    keyPress = wgetch(mainPad);
+    key_press = wgetch(mainPad);
   }
 
-  werase(mainWin);
+  werase(main_win);
   werase(mainPad);
-  wrefresh(mainWin);
+  wrefresh(main_win);
   endwin();
   fclose(console);
-  fclose(ttyInput);
+  fclose(tty_input);
 
-  if (keyPress != KEY_CANCEL) {
+  if (key_press != KEY_CANCEL) {
 
     /*
      * Find out how many extra arguments were tacked on to the
      * the end of the command line.
      */
 
-    countExtraArgs = 0;
-    while (_argv[LV_NPARAMS + countExtraArgs] != NULL)
-      countExtraArgs++;
+    count_extra_args = 0;
+    while (_argv[LV_NPARAMS + count_extra_args] != NULL)
+      count_extra_args++;
 
-    executeArgs =
-        (char **)malloc(sizeof(char *) * countExtraArgs + markCount + 2);
-    *executeArgs = _argv[LV_COMMAND_PARAM];
-    argvPos = LV_NPARAMS;
-    execArgsPos = 1;
-    argsInserted = FALSE;
-    while (_argv[argvPos] != NULL) {
-      //			printf("! %d, %s\n", countExtraArgs,
-      //_argv[argvPos]);
-      if (*_argv[argvPos] == '$' && !argsInserted) {
-        argsInserted = TRUE;
-        currentItem = dirList;
-        while (currentItem != (dispElement *)0) {
-          if (currentItem->marked == TRUE) {
-            //						printf("! %d, %s\n",
-            //countExtraArgs, currentItem->variable);
-            *(executeArgs + execArgsPos) = currentItem->variable;
-            execArgsPos++;
+    execute_args =
+        (char **)malloc(sizeof(char *) * count_extra_args + mark_count + 2);
+    *execute_args = _argv[LV_COMMAND_PARAM];
+    argv_pos = LV_NPARAMS;
+    exec_args_pos = 1;
+    args_inserted = FALSE;
+    while (_argv[argv_pos] != NULL) {
+      			printf("! %d, %s\n", count_extra_args,
+      _argv[argv_pos]);
+      if (*_argv[argv_pos] == '$' && !args_inserted) {
+        args_inserted = TRUE;
+        current_item = menu_list;
+        while (current_item != (DisplayElement *)0) {
+          if (current_item->marked == TRUE) {
+            						printf("! %d, %s\n",
+            count_extra_args, current_item->variable);
+            *(execute_args + exec_args_pos) = current_item->variable;
+            exec_args_pos++;
           }
-          currentItem = currentItem->next;
+          current_item = current_item->next;
         }
       } else {
-        *(executeArgs + execArgsPos) = _argv[argvPos];
-        execArgsPos++;
+        *(execute_args + exec_args_pos) = _argv[argv_pos];
+        exec_args_pos++;
       }
 
-      argvPos++;
+      argv_pos++;
     }
 
-    *(executeArgs + execArgsPos) = NULL;
+    *(execute_args + exec_args_pos) = NULL;
 
-    execArgsPos = 0;
-    while (*(executeArgs + execArgsPos) != 0) {
-      //		printf("arg %d, \'%s\'\n", execArgsPos,
-      //*(executeArgs+execArgsPos));
-      execArgsPos++;
+    exec_args_pos = 0;
+    while (*(execute_args + exec_args_pos) != 0) {
+      		printf("arg %d, \'%s\'\n", exec_args_pos,
+      *(execute_args+exec_args_pos));
+      exec_args_pos++;
     }
     childID = fork();
     if (childID == 0) {
-      if (execvp(_argv[LV_COMMAND_PARAM], executeArgs) == -1) {
+      if (execvp(_argv[LV_COMMAND_PARAM], execute_args) == -1) {
         fprintf(stderr, "Could not execute: %s\n", _argv[LV_COMMAND_PARAM]);
         exit(-1);
       }
