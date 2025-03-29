@@ -50,7 +50,7 @@ int find_tokens(char *string, Token tokens[], int max_tokens) {
     tokens[token_count].ptr = current;
     tokens[token_count].len = 0;
 
-    int len = 0;
+    int len = 1;
     while (*current != '\0' && *current != ',') {
 
       current++;
@@ -59,6 +59,7 @@ int find_tokens(char *string, Token tokens[], int max_tokens) {
       }
       len++;
     }
+    token_count++;
     if (*current == '\0') {
       break;
     } else if (*current == ',') {
@@ -82,6 +83,7 @@ int parse_input_into_list(DisplayElement **list) {
     fgets(input_line, MAXELEM, stdin);
     input_line[MAXELEM - 1] = '\0';
     token_count = find_tokens(input_line, tokens, max_tokens);
+    printf("token_count %d: %s", token_count, input_line);
 
     switch (token_count) {
     case 0:
@@ -115,7 +117,11 @@ int parse_input_into_list(DisplayElement **list) {
     }
 
     if (new_item) {
-      append_display_element(list, new_item);
+      if (*list) {
+        append_display_element(list, new_item);
+      } else {
+        *list = new_item;
+      }
       num_rows++;
     }
   }
