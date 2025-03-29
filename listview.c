@@ -24,7 +24,6 @@
  *
  * */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +37,21 @@
 void unshowbar(WINDOW *w, int line);
 void showbar(WINDOW *w, int line);
 
+void showbar(WINDOW *w, int line) {
+  int bx, by, mx, my;
+  getmaxyx(w, my, mx);
+  getbegyx(w, by, bx);
+
+  mvwchgat(w, line, bx, -1, (attr_t)A_REVERSE, COLOR_BLACK, NULL);
+}
+
+void unshowbar(WINDOW *w, int line) {
+  int bx, by, mx, my;
+  getmaxyx(w, my, mx);
+  getbegyx(w, by, bx);
+
+  mvwchgat(w, line, bx, -1, (attr_t)A_NORMAL, COLOR_BLACK, NULL);
+}
 
 int main(int _argc, char *_argv[]) {
   DisplayElement *menu_list = (DisplayElement *)0;
@@ -57,27 +71,24 @@ int main(int _argc, char *_argv[]) {
   WINDOW *main_win;
   SCREEN *main_screen;
 
-
   WINDOW *mainPad;
 
   if (_argc < LV_NPARAMS) {
-    fprintf(stderr,
-            "Too few arguments!\nUsage: %s [titleString]",
-            _argv[0]);
+    fprintf(stderr, "Too few arguments!\nUsage: %s [titleString]", _argv[0]);
     exit(-1);
   }
 
   tty_input = fopen("/dev/tty", "rw");
 
   if (!tty_input) {
-	  fprintf(stderr, "couldn't open /dev/tty for read/write\n");
-	  exit(-1);
+    fprintf(stderr, "couldn't open /dev/tty for read/write\n");
+    exit(-1);
   }
 
   console = fopen("/dev/tty", "w");
   if (!console) {
-	  fprintf(stderr, "couldn't open /dev/tty for write\n");
-	  exit(-1);
+    fprintf(stderr, "couldn't open /dev/tty for write\n");
+    exit(-1);
   }
 
   num_rows = parse_input_into_list(&menu_list);
@@ -122,7 +133,8 @@ int main(int _argc, char *_argv[]) {
   keypad(mainPad, TRUE);
   showbar(mainPad, cursor + row_pos);
   pad_start_y = beg_y + 1;
-  prefresh(mainPad, row_pos, 0, pad_start_y, 0, pad_refresh_rows, pad_refresh_cols);
+  prefresh(mainPad, row_pos, 0, pad_start_y, 0, pad_refresh_rows,
+           pad_refresh_cols);
 
   /* print the first status line below */
   wattr_on(main_win, WA_REVERSE, NULL);
@@ -205,7 +217,8 @@ int main(int _argc, char *_argv[]) {
     wrefresh(main_win);
 
     /*  Update the Pad */
-    prefresh(mainPad, row_pos, 0, pad_start_y, 0, pad_refresh_rows, pad_refresh_cols);
+    prefresh(mainPad, row_pos, 0, pad_start_y, 0, pad_refresh_rows,
+             pad_refresh_cols);
 
     /* Get next keystroke */
     key_press = wgetch(mainPad);
@@ -219,30 +232,14 @@ int main(int _argc, char *_argv[]) {
   fclose(tty_input);
 
   if (key_press != KEY_CANCEL) {
-        current_item = menu_list;
-        while (current_item != (DisplayElement *)0) {
-          if (current_item->marked == TRUE) {
-            printf("%s\n", current_item->output);
-          }
-          current_item = current_item->next;
-        }
+    current_item = menu_list;
+    while (current_item != (DisplayElement *)0) {
+      if (current_item->marked == TRUE) {
+        printf("%s\n", current_item->output);
+      }
+      current_item = current_item->next;
+    }
   }
 
   exit(0);
-}
-
-void showbar(WINDOW *w, int line) {
-  int bx, by, mx, my;
-  getmaxyx(w, my, mx);
-  getbegyx(w, by, bx);
-
-  mvwchgat(w, line, bx, -1, (attr_t)A_REVERSE, COLOR_BLACK, NULL);
-}
-
-void unshowbar(WINDOW *w, int line) {
-  int bx, by, mx, my;
-  getmaxyx(w, my, mx);
-  getbegyx(w, by, bx);
-
-  mvwchgat(w, line, bx, -1, (attr_t)A_NORMAL, COLOR_BLACK, NULL);
 }
