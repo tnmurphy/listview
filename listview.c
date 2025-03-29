@@ -53,6 +53,20 @@ void unshowbar(WINDOW *w, int line) {
   mvwchgat(w, line, bx, -1, (attr_t)A_NORMAL, COLOR_BLACK, NULL);
 }
 
+void dump_selected(DisplayElement *list) {
+  DisplayElement *current = list;
+  while (current) {
+    if (current->marked == TRUE) {
+      if (current->output[0] != '\0') {
+        printf("%s\n", current->output);
+      } else {
+        printf("%s\n", current->display);
+      }
+    }
+    current = current->next;
+  }
+}
+
 int main(int _argc, char *_argv[]) {
   DisplayElement *menu_list = (DisplayElement *)0;
   FILE *console = (FILE *)0;
@@ -232,13 +246,7 @@ int main(int _argc, char *_argv[]) {
   fclose(tty_input);
 
   if (key_press != KEY_CANCEL) {
-    current_item = menu_list;
-    while (current_item != (DisplayElement *)0) {
-      if (current_item->marked == TRUE) {
-        printf("%s\n", current_item->output);
-      }
-      current_item = current_item->next;
-    }
+    dump_selected(menu_list);
   }
 
   exit(0);

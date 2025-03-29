@@ -80,10 +80,12 @@ int parse_input_into_list(DisplayElement **list) {
     DisplayElement *new_item = NULL;
     Token tokens[max_tokens];
     int token_count = 0;
-    fgets(input_line, MAXELEM, stdin);
+    if (!fgets(input_line, MAXELEM, stdin)) {
+	return num_rows;
+    }
     input_line[MAXELEM - 1] = '\0';
     token_count = find_tokens(input_line, tokens, max_tokens);
-    printf("token_count %d: %s", token_count, input_line);
+    /* printf("token_count %d: %s", token_count, input_line); */
 
     switch (token_count) {
     case 0:
@@ -95,6 +97,7 @@ int parse_input_into_list(DisplayElement **list) {
       if (new_item) {
         strncpy(new_item->display, tokens[0].ptr, tokens[0].len);
         new_item->display[tokens[0].len] = '\0';
+        new_item->output[0] = '\0';
       }
       break;
       ;
