@@ -69,8 +69,8 @@ int test_parse_1(void) {
     fprintf(stderr, "tokens: ");
     for (int j = 0; j < token_count; j++) {
       char temptoken[MAXELEM];
-      strncpy(temptoken, tokens[0].ptr, tokens[0].len);
-      temptoken[tokens[0].len] = '\0';
+      strncpy(temptoken, tokens[j].ptr, tokens[j].len);
+      temptoken[tokens[j].len] = '\0';
       fprintf(stderr, " '%s'", temptoken);
       if (strcmp(tests[i].tokens[j], temptoken) != 0) {
         failed = 1;
