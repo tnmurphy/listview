@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #include "listfuncs.h"
 
@@ -91,6 +92,23 @@ int main(int _argc, char *_argv[]) {
     fprintf(stderr, "Too few arguments!\nUsage: %s [titleString]", _argv[0]);
     exit(-1);
   }
+
+
+  int mark_limit = INT_MAX;
+  int opt = 0;
+
+  while ((opt = getopt(_argc, _argv, "u")) != -1) {
+      switch (opt) {
+      case 'u':
+          mark_limit = 1;
+          break;
+      default: /* '?' */
+          fprintf(stderr, "Usage: %s [-u]\n  -u: unique mark",
+                  _argv[0]);
+          exit(EXIT_FAILURE);
+      }
+  }
+
 
   tty_input = fopen("/dev/tty", "rw");
 
@@ -165,9 +183,11 @@ int main(int _argc, char *_argv[]) {
     switch (key_press) {
     case KEY_LV_MARK: /*  User wishes to select an item */
       if (current_item->marked == FALSE) {
-        current_item->marked = TRUE;
-        mvwaddch(mainPad, row_pos + cursor, max_x - 1, '*');
-        mark_count++;
+	if (mark_count < mark_limit) {
+          current_item->marked = TRUE;
+          mvwaddch(mainPad, row_pos + cursor, max_x - 1, '*');
+          mark_count++;
+	}
       } else {
         current_item->marked = FALSE;
         mvwaddch(mainPad, row_pos + cursor, max_x - 1, ' ');

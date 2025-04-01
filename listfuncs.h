@@ -51,5 +51,6 @@ extern void add_item(DisplayElement **list, const char *description,
                      const char *output);
 extern DisplayElement *scan_to(DisplayElement *list, int pos);
 extern int parse_input_into_list(DisplayElement **list);
+extern int find_tokens(char *string, Token tokens[], int max_tokens);
 
 #endif

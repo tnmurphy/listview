@@ -43,26 +43,35 @@ int find_tokens(char *string, Token tokens[], int max_tokens) {
     /* search for the first non-whitespace character */
     while (isspace(*current)) {
       current++;
+      fprintf(stderr, "s");
     }
     if (*current == '\0') {
       break;
     }
     tokens[token_count].ptr = current;
-    tokens[token_count].len = 0;
+    tokens[token_count].len = -1;
 
-    int len = 1;
-    while (*current != '\0' && *current != ',') {
-
-      current++;
-      if (isspace(*current)) {
+    int len = 0;
+    while (1) {
+      if (*current == '\0') {
+        if (tokens[token_count].len == -1) {
+          tokens[token_count].len = len;
+        }
+        token_count++;
+        break;
+      } else if (*current == ',') {
+        if (tokens[token_count].len == -1) {
+          tokens[token_count].len == len;
+        }
+        current++;
+        token_count++;
+        break;
+      } else if (!isspace(*current) && isspace(*(current + 1))) {
         tokens[token_count].len = len;
+      } else {
       }
+      current++;
       len++;
-    }
-    token_count++;
-    if (*current == '\0') {
-      break;
-    } else if (*current == ',') {
     }
     /* search for the last non-whitespace character before a separator or before
      * the end of the string */
@@ -74,6 +83,7 @@ int find_tokens(char *string, Token tokens[], int max_tokens) {
 int parse_input_into_list(DisplayElement **list) {
   int num_rows = 0;
   char input_line[MAXELEM];
+  fprintf(stderr, "r");
   const int max_tokens = 2;
 
   while (!feof(stdin)) {
@@ -81,7 +91,7 @@ int parse_input_into_list(DisplayElement **list) {
     Token tokens[max_tokens];
     int token_count = 0;
     if (!fgets(input_line, MAXELEM, stdin)) {
-	return num_rows;
+      return num_rows;
     }
     input_line[MAXELEM - 1] = '\0';
     token_count = find_tokens(input_line, tokens, max_tokens);

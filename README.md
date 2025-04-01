@@ -2,13 +2,18 @@
 
 **Author: Timothy N Murphy <tnmurphy@gmail.com>**
 
-A way for shell script to show a menu or list of options and then execute a command with arguments based on those options.
+A way for shell script to show a menu or list of options and then obtain a list of those which were selected by the user. 
 
 ## What??? ##
 
-{ for i in *.py; do echo "Search $i, $i"; done } | ./lv "Choose which files to search for the word bob" grep bob 
 
-This will show a fullscreen selection a bit like this
+As an example - we want to let the user choose which files to add to a backup archive: 
+
+```
+ls * | tar -czf backup.tgz $(./lv "Choose which files to add to the archive")
+```
+
+This will show a fullscreen selection a bit like this:
 
 ```
 Choose which files to search for the word bob
@@ -18,14 +23,34 @@ Search file3.py
 
 ```
 
-you may select files with the spacebar and pressing enter will cause "grep" to be run with the selected options.
+The user may select files with the spacebar - a star will appear on the screen next to it. To complete the selection the user presses enter.
 
-Options are piped into the standard input in the form "Display text, argument that will be passed to grep"
+The selected files are then written one per line to the stdout and may be captured for use in a script as with the example above.
 
-for example if all three files were selected then this would be the resulting command: 
+## -u Option ##
+The "unique" option will allow only one option to be selected from the list. This is obviously useful with menus.
 
 ```
-grep bob file1.py file2.py file3.py
 ```
 
+## Different menu text ##
+It is possible for a displayed option to have different text from what gets sent to the output.
 
+If there is a comma in the input the text before the comma is displayed in the menu but should that option be selected by the user the text that gets sent to stdout will be what comes after the comma.
+
+e.g. 
+
+```
+ls $(echo -e "Option 1 - list all pictures,*.png\nOption 2 - list all C source files,*.c" | lv "Select file types to list")
+
+.... will result in something like:
+
+ls *.png
+
+...or
+
+ls *.c
+
+```
+
+This is a case where what you want to happen is different from the descriptive text that you wish to describe the option. 
