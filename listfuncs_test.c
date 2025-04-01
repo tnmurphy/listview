@@ -31,42 +31,68 @@
 
 #include "listfuncs.h"
 
+#define MAX_TOKENS 100
 typedef struct FindTokensResultStruct {
   char input[MAXELEM];
   char count;
+  char *tokens[MAX_TOKENS];
 } FindTokensResult;
-#define MAX_TOKENS 100
 
 int test_parse_1(void) {
 
   int token_count = 0;
   Token tokens[MAX_TOKENS];
+  int test_result = 1; /* default to succeed */
 
-  FindTokensResult tests[] = {{"descronly", 1},
-                              {"descr,output", 2},
-                              {"descr and spaces,output", 2},
-                              {"", -1}};
+  FindTokensResult tests[] = {
+      {"descronly", 1, {"descronly"}},
+      {"descr,output", 2, {"descr", "output"}},
+      {"descr and spaces,output", 2, {"descr and spaces", "output"}},
+      {"descr and spaces,output,another_output",
+       3,
+       {"descr and spaces", "output", "another_output"}},
+      {"descr and stripped spaces ,output ,another_output",
+       3,
+       {"descr and spaces", "output", "another_output"}},
+      {"", -1, {}}};
 
   for (int i = 0; tests[i].count != -1; i++) {
+    int failed = 0;
     token_count = find_tokens(tests[i].input, tokens, MAX_TOKENS);
-    fprintf(stderr, "test_parse_1: test %d ", i, tests[i].input, token_count,
-            tests[i].count);
+    fprintf(stderr, "test_parse_1: test %d: '%s' expecting %d tokens: ", i,
+            tests[i].input, token_count);
     if (token_count != tests[i].count) {
-      fprintf(stderr, "failed: %s: %d!=%d tokens\n", i, tests[i].input,
-              token_count, tests[i].count);
-      for (int j = 0; j < token_count; j++) {
-        char temptoken[MAXELEM];
-        strncpy(temptoken, tokens[0].ptr, tokens[0].len);
-        temptoken[tokens[0].len] = '\0';
+      fprintf(stderr, " %d!=%d tokens", token_count, tests[i].count);
+      failed = 1;
+    }
 
-        fprintf(stderr, "token %d: '%s'\n", j, temptoken);
+    fprintf(stderr, "tokens: ");
+    for (int j = 0; j < token_count; j++) {
+      char temptoken[MAXELEM];
+      strncpy(temptoken, tokens[0].ptr, tokens[0].len);
+      temptoken[tokens[0].len] = '\0';
+      fprintf(stderr, " '%s'", temptoken);
+      if (strcmp(tests[i].tokens[j], temptoken) != 0) {
+        failed = 1;
+	if (j < tests[i].count) {
+          fprintf(stderr, " != '%s' ", tests[i].tokens[j]);
+	} else {
+          fprintf(stderr, " != '' ");
+	}
+      } else {
+        fprintf(stderr, ", ", j, tests[i].tokens[j]);
       }
+    }
+
+    if (failed) {
+      fprintf(stderr, "failed\n");
+      test_result  = failed;
     } else {
       fprintf(stderr, "ok\n");
     }
   }
 
-  t
+  return test_result;
 }
 
 int main(int _argc, char *_argv[]) {

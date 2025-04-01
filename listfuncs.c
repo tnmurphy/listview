@@ -61,7 +61,7 @@ int find_tokens(char *string, Token tokens[], int max_tokens) {
         break;
       } else if (*current == ',') {
         if (tokens[token_count].len == -1) {
-          tokens[token_count].len == len;
+          tokens[token_count].len = len;
         }
         current++;
         token_count++;
