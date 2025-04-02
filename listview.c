@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <unistd.h>
 
 #include "listfuncs.h"
 
@@ -68,47 +69,24 @@ void dump_selected(DisplayElement *list) {
   }
 }
 
-int main(int _argc, char *_argv[]) {
-  DisplayElement *menu_list = (DisplayElement *)0;
+
+int show_menu(char title[], DisplayElement *menu_list, int num_rows, int mark_limit) {
+  DisplayElement *current_item;
+  DisplayElement *show_item;
   FILE *console = (FILE *)0;
   FILE *tty_input = (FILE *)0;
   int row_pos = 0;
   int cursor = 0;
   int key_press;
   int max_x, max_y, beg_x, beg_y;
-  int num_rows, num_cols;
+  int num_cols;
   int pad_refresh_rows, pad_refresh_cols;
   int pad_start_y;
   int old_cursor, old_row_pos;
-  DisplayElement *current_item;
-  DisplayElement *show_item;
   int mark_count = 0;
   WINDOW *main_win;
   SCREEN *main_screen;
-
   WINDOW *mainPad;
-
-  if (_argc < LV_NPARAMS) {
-    fprintf(stderr, "Too few arguments!\nUsage: %s [titleString]", _argv[0]);
-    exit(-1);
-  }
-
-
-  int mark_limit = INT_MAX;
-  int opt = 0;
-
-  while ((opt = getopt(_argc, _argv, "u")) != -1) {
-      switch (opt) {
-      case 'u':
-          mark_limit = 1;
-          break;
-      default: /* '?' */
-          fprintf(stderr, "Usage: %s [-u]\n  -u: unique mark",
-                  _argv[0]);
-          exit(EXIT_FAILURE);
-      }
-  }
-
 
   tty_input = fopen("/dev/tty", "rw");
 
@@ -121,13 +99,6 @@ int main(int _argc, char *_argv[]) {
   if (!console) {
     fprintf(stderr, "couldn't open /dev/tty for write\n");
     exit(-1);
-  }
-
-  num_rows = parse_input_into_list(&menu_list);
-
-  if (!menu_list) {
-    fprintf(stderr, "No display,variable pairs found in the input\n");
-    exit(1);
   }
 
   /* Now try to switch to ncurses etc */
@@ -173,7 +144,7 @@ int main(int _argc, char *_argv[]) {
   mvwprintw(main_win, max_y - 1, beg_x, "%s , %d  ", current_item->output,
             max_y - 1);
 
-  mvwprintw(main_win, beg_y, beg_x, "LISTVIEW - %s ", _argv[LV_TITLE_PARAM]);
+  mvwprintw(main_win, beg_y, beg_x, "LISTVIEW - %s ", title);
   wrefresh(main_win);
 
   key_press = '\0';
@@ -265,7 +236,46 @@ int main(int _argc, char *_argv[]) {
   fclose(console);
   fclose(tty_input);
 
-  if (key_press != KEY_CANCEL) {
+  return key_press;
+}
+
+
+int main(int _argc, char *_argv[]) {
+  DisplayElement *menu_list = (DisplayElement *)0;
+  int num_rows;
+
+
+  if (_argc < LV_NPARAMS) {
+    fprintf(stderr, "Too few arguments!\nUsage: %s [titleString]", _argv[0]);
+    exit(-1);
+  }
+
+
+  int mark_limit = INT_MAX;
+  int opt = 0;
+
+  while ((opt = getopt(_argc, _argv, "u")) != -1) {
+      switch (opt) {
+      case 'u':
+          mark_limit = 1;
+          break;
+      default: /* '?' */
+          fprintf(stderr, "Usage: %s [-u]\n  -u: unique mark",
+                  _argv[0]);
+          exit(EXIT_FAILURE);
+      }
+  }
+
+
+  num_rows = parse_input_into_list(&menu_list);
+
+  if (!menu_list) {
+    fprintf(stderr, "No display,variable pairs found in the input\n");
+    exit(1);
+  }
+
+  if (show_menu(_argv[LV_TITLE_PARAM],
+			  menu_list, num_rows, mark_limit) != KEY_CANCEL) {
     dump_selected(menu_list);
   }
 
