@@ -66,12 +66,13 @@ int find_tokens(char *string, Token tokens[], int max_tokens) {
         current++;
         token_count++;
         break;
-      } else if (!isspace(*current) && isspace(*(current + 1))) {
-        tokens[token_count].len = len;
+      } else if (isspace(*current)) {
+        /* don't update the token length */
       } else {
+        tokens[token_count].len = len + 1;
       }
-      current++;
       len++;
+      current++;
     }
     /* search for the last non-whitespace character before a separator or before
      * the end of the string */

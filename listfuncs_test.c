@@ -46,6 +46,7 @@ int test_parse_1(void) {
 
   FindTokensResult tests[] = {
       {"descronly", 1, {"descronly"}},
+      {"descronlylf\n", 1, {"descronlylf"}},
       {"descr,output", 2, {"descr", "output"}},
       {"descr and spaces,output", 2, {"descr and spaces", "output"}},
       {"descr and spaces,output,another_output",
@@ -53,7 +54,8 @@ int test_parse_1(void) {
        {"descr and spaces", "output", "another_output"}},
       {"descr and stripped spaces ,output ,another_output",
        3,
-       {"descr and spaces", "output", "another_output"}},
+       {"descr and stripped spaces", "output", "another_output"}},
+      {",", 1, {"", ""}},
       {"", -1, {}}};
 
   for (int i = 0; tests[i].count != -1; i++) {
@@ -74,11 +76,11 @@ int test_parse_1(void) {
       fprintf(stderr, " '%s'", temptoken);
       if (strcmp(tests[i].tokens[j], temptoken) != 0) {
         failed = 1;
-	if (j < tests[i].count) {
+        if (j < tests[i].count) {
           fprintf(stderr, " != '%s' ", tests[i].tokens[j]);
-	} else {
+        } else {
           fprintf(stderr, " != '' ");
-	}
+        }
       } else {
         fprintf(stderr, ", ", j, tests[i].tokens[j]);
       }
@@ -86,7 +88,7 @@ int test_parse_1(void) {
 
     if (failed) {
       fprintf(stderr, "failed\n");
-      test_result  = failed;
+      test_result = failed;
     } else {
       fprintf(stderr, "ok\n");
     }
