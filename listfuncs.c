@@ -43,7 +43,6 @@ int find_tokens(char *string, Token tokens[], int max_tokens) {
     /* search for the first non-whitespace character */
     while (isspace(*current)) {
       current++;
-      fprintf(stderr, "s");
     }
     if (*current == '\0') {
       break;

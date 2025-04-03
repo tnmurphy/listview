@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include <utmp.h>
 
-#define MAXELEM 100
+#define MAXELEM 500
 
 typedef struct DisplayElementStruct {
   char display[MAXELEM];
